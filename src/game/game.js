@@ -175,7 +175,7 @@ export class Game {
     this.enemies.render(alpha);
     const focus = p.root.position;
     if (this.state === 'play') this.camera.update(dt, focus, this.input, this.world);
-    else this.input.takeLook();
+    else { this.input.takeLook(); this.input.takeZoom(); }
     this.world.update(dt, focus, this.cam);
     this.renderer.render(this.scene, this.cam);
     this.ui.frame(dt);
@@ -295,9 +295,11 @@ export class Game {
     this.ui.toast(`回復薬を使った（残り ${this.save.potions}）`, '#7dff9a', true);
   }
 
+  // Party members announce their level-ups; benched characters level quietly.
   onLevelUp(id, lv) {
     const m = this.player.members.find((x) => x.id === id);
-    if (m && m.hp > 0) m.hp = this.player.statsOf(m).maxHp;
+    if (!m) return;
+    if (m.hp > 0) m.hp = this.player.statsOf(m).maxHp;
     this.ui.toast(`${CHARACTERS[id].name} が Lv.${lv} に上がった！`, '#ffd36a');
     this.audio.play('levelup');
   }

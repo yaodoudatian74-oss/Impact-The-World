@@ -102,7 +102,7 @@ export class Player {
   switchTo(i, forced = false) {
     const g = this.game;
     if (i === this.activeIdx || i >= this.members.length) return;
-    if (this.members[i].hp <= 0) { if (!forced) g.ui.toast(`${this.members[i].def.name}は戦闘不能です`, '#ff8a8a'); return; }
+    if (this.members[i].hp <= 0) { if (!forced) g.ui.toast(`${this.members[i].def.name}は戦闘不能（ワープポイントで復活）`, '#ff8a8a', true); return; }
     if (!forced && this.switchCd > 0) return;
     this.activeIdx = i;
     this.switchCd = 0.8;
@@ -353,7 +353,7 @@ export class Player {
     const G = 32 * realm.gravity;
     if (this.mode === 'glide') {
       vel.y = Math.max(vel.y - G * dt, -3.2);
-      this.stamina -= 6 * dt;
+      this.stamina -= 3.5 * dt;
       this.staminaUseT = t;
       if (this.stamina <= 0) this.mode = 'air';
     } else if (!this.onGround) vel.y -= G * dt;

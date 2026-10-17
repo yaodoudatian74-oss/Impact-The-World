@@ -318,7 +318,7 @@ const SHAPES = {
         mask = Math.max(mask, zoneBoost(x, z) * 0.6);
         const rd = roadDist(x, z);
         if (rd < 30) {
-          const gaps = smoothstep(-0.25, 0.05, N.c(x / 170, z / 170));
+          const gaps = smoothstep(-0.62, -0.42, N.c(x / 150, z / 150));
           mask = Math.max(mask, smoothstep(30, 10, rd) * 0.4 * gaps);
         }
         const island = smoothstep(-0.04, 0.08, mask);

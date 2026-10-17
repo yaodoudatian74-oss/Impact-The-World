@@ -74,6 +74,7 @@ function boot(hotData) {
     if (document.hidden) { audio.suspend(); if (game.save && game.state === 'play') game.saveNow(); }
     else { audio.resume(); game.lastFrame = performance.now(); }
   });
+  addEventListener('pagehide', () => { if (game.save && game.state !== 'title') game.saveNow(); });
   const unlockAudio = () => audio.unlock();
   addEventListener('pointerdown', unlockAudio);
   addEventListener('keydown', unlockAudio);
