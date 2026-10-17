@@ -1,0 +1,15 @@
+{
+  "name": "幻想ワールド Impact The World",
+  "short_name": "幻想ワールド",
+  "description": "6つの世界を旅するオープンワールド3DアクションRPG",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#120e1e",
+  "theme_color": "#120e1e",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,35 @@
+# Publishes the playable game to GitHub Pages. Only the files the browser needs are uploaded.
+name: Deploy game to GitHub Pages
+
+on:
+  push:
+    branches: [main, ccr-8490da00-tb2v95]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp index.html style.css sw.js manifest.webmanifest icon.svg _site/
+          cp -r src _site/src
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
