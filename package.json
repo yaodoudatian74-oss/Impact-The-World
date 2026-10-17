@@ -1,0 +1,17 @@
+{
+  "name": "impact-the-world",
+  "version": "1.0.0",
+  "description": "幻想ワールド — 6つの世界を旅するオープンワールド3D RPG",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "serve": "npx http-server . -p 8080 -c-1",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0",
+    "three": "0.170.0"
+  }
+}
