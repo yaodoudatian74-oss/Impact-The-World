@@ -129,6 +129,7 @@ export class Quests {
     }
     for (let i = this.items.length - 1; i >= 0; i--) {
       const it = this.items[i];
+      if (!it) continue; // a pickup can finish the step and shrink the list
       it.obj.rotation.y += dt * 2;
       it.obj.position.y = it.y + 1.2 + Math.sin(g.time * 3 + it.idx) * 0.2;
       if (Math.hypot(p.x - it.x, p.z - it.z) < 3 && Math.abs(p.y - it.y) < 5) this.pickItem(it);
