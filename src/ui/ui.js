@@ -10,6 +10,7 @@ import { characterStats, expToNext, MAX_LEVEL } from '../game/rules.js';
 import { EXPLORE_GRID } from '../game/save.js';
 import { portrait } from './portraits.js';
 import { formatTime, clamp } from '../core/math.js';
+import { PAD_LABELS, padFamily } from '../core/input.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 function h(tag, attrs = {}, ...kids) {
@@ -53,6 +54,103 @@ export class UI {
     this.game = game;
     this.build();
     game.input.uiHandler = (a) => this.handleAction(a);
+    game.input.padUi = {
+      active: () => this.padActive(),
+      button: (name) => this.padButton(name),
+      navigate: (dx, dy) => this.padNavigate(dx, dy),
+      tab: (dir) => this.padTab(dir),
+    };
+    window.addEventListener('gamepadconnected', (e) => {
+      const label = PAD_LABELS[padFamily(e.gamepad.id)];
+      this.toast(`コントローラー接続（A=${label.bottom}, B=${label.right}）`, '#c8c8d8', true);
+    });
+  }
+
+  // ------------------------------------------------------------------ gamepad navigation
+  // Whatever overlay is on top takes the pad. Otherwise the pad plays the game.
+  padActive() {
+    return !!this.root.querySelector('.title-screen') || !!this.menuName || this.dialogueOpen || !this.rewardEl.hidden || !this.deathEl.hidden;
+  }
+
+  padRoot() {
+    if (this.dialogueOpen) return null;
+    if (!this.rewardEl.hidden) return this.rewardEl;
+    if (!this.deathEl.hidden) return this.deathEl;
+    if (this.menuName) return this.menuEl;
+    return this.root.querySelector('.title-screen');
+  }
+
+  padItems(root) {
+    return [...root.querySelectorAll('button, input, select')].filter((el) => !el.disabled && el.getClientRects().length && !el.closest('[hidden]'));
+  }
+
+  padFocusNow() {
+    const root = this.padRoot();
+    if (!root) return null;
+    const items = this.padItems(root);
+    if (!this.padFocus || !items.includes(this.padFocus)) this.padSetFocus(items[0] || null);
+    return this.padFocus;
+  }
+
+  padSetFocus(el) {
+    this.padFocus?.classList.remove('gp-focus');
+    this.padFocus = el;
+    if (el) {
+      el.classList.add('gp-focus');
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }
+
+  // Moves focus to the nearest control in the given direction (unit vector, screen axes).
+  padNavigate(dx, dy) {
+    const cur = this.padFocusNow();
+    if (!cur) return;
+    if (cur.tagName === 'INPUT' && cur.type === 'range' && dx) {
+      cur.value = clamp(Number(cur.value) + dx * Number(cur.step || 1), Number(cur.min), Number(cur.max));
+      cur.dispatchEvent(new Event('input'));
+      return;
+    }
+    if (cur.tagName === 'SELECT' && dx) {
+      const i = clamp(cur.selectedIndex + dx, 0, cur.options.length - 1);
+      if (i !== cur.selectedIndex) { cur.selectedIndex = i; cur.dispatchEvent(new Event('change')); }
+      return;
+    }
+    const items = this.padItems(this.padRoot());
+    const r0 = cur.getBoundingClientRect();
+    const cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
+    let best = null, bestScore = Infinity;
+    for (const el of items) {
+      if (el === cur) continue;
+      const r = el.getBoundingClientRect();
+      const vx = r.left + r.width / 2 - cx, vy = r.top + r.height / 2 - cy;
+      const along = vx * dx + vy * dy;
+      if (along <= 2) continue;
+      const across = Math.abs(vx * dy) + Math.abs(vy * dx);
+      const score = along + across * 2;
+      if (score < bestScore) { bestScore = score; best = el; }
+    }
+    if (best) this.padSetFocus(best);
+  }
+
+  padButton(name) {
+    if (this.dialogueOpen) {
+      if (name === 'a' || name === 'b') this.advanceDialogue();
+      return;
+    }
+    if (!this.rewardEl.hidden && (name === 'b' || name === 'start')) { this.closeReward(); return; }
+    if (this.menuName && (name === 'b' || name === 'start')) { this.closeMenu(); return; }
+    if (name === 'a') {
+      const el = this.padFocusNow();
+      if (el && el.tagName === 'INPUT' && el.type === 'checkbox') el.click();
+      else el?.click();
+    }
+  }
+
+  padTab(dir) {
+    if (!this.menuName) return;
+    const tabs = [...this.menuEl.querySelectorAll('.m-tabs button')];
+    const i = tabs.findIndex((b) => b.classList.contains('on'));
+    if (tabs.length && i >= 0) tabs[(i + dir + tabs.length) % tabs.length].click();
   }
 
   // ------------------------------------------------------------------ DOM construction
@@ -100,7 +198,8 @@ export class UI {
     this.hud.append(h('div', { class: 'skills' }, this.potionEl, this.skillBtn, this.burstBtn));
 
     this.bossEl = h('div', { class: 'boss' }, h('div', { class: 'nm' }), h('div', { class: 'bar' }, h('i')), h('div', { class: 'aura' }));
-    this.promptEl = h('button', { class: 'prompt', type: 'button' }, touch ? null : h('kbd', {}, 'F'), h('span'));
+    this.promptKey = h('kbd', {}, 'F');
+    this.promptEl = h('button', { class: 'prompt', type: 'button' }, touch ? null : this.promptKey, h('span'));
     tap(this.promptEl, () => this.game.input.press('interact'));
     this.toastWrap = h('div', { class: 'toasts' });
     this.bannerEl = h('div', { class: 'banner' }, h('div', { class: 'b-title' }), h('div', { class: 'b-sub' }));
@@ -324,6 +423,8 @@ export class UI {
     const it = g.state === 'play' ? g.interactable() : null;
     this.promptEl.hidden = !it;
     if (it) $('span', this.promptEl).textContent = it.label;
+    if (g.input.padUsed) this.promptKey.textContent = PAD_LABELS[padFamily(g.input.pad?.id)].bottom;
+    else this.promptKey.textContent = 'F';
 
     // Boss bar
     const boss = g.activeBoss();
@@ -956,15 +1057,26 @@ export class UI {
     const help = this.game.input.isTouch
       ? [['左ドラッグ', '移動（端まで倒すとダッシュ）'], ['右ドラッグ', '視点'], ['攻撃', '通常攻撃（長押しで連続）'], ['E / Q', '元素スキル / 元素爆発'], ['跳', 'ジャンプ・空中でもう一度押すと滑空'], ['駆', 'ダッシュ回避'], ['騎', '精霊の馬に乗る'], ['顔アイコン', 'キャラ交代']]
       : [['WASD', '移動'], ['マウス / ドラッグ', '視点（クリックで固定、Escで解除）'], ['左クリック', '通常攻撃（押しっぱなしで連続）'], ['E', '元素スキル'], ['Q', '元素爆発'], ['Space', 'ジャンプ・空中で滑空・水中で浮上'], ['Ctrl / X', '水中で潜る'], ['Shift', 'ダッシュ回避（押し続けて走る）'], ['R', '精霊の馬に乗る / 降りる'], ['F', '話す・調べる'], ['1〜4', 'キャラ交代'], ['H', '回復薬'], ['M / C / J', '地図 / 編成 / 物語']];
+    const L = PAD_LABELS[padFamily(g.input.pad?.id)];
+    const pad = [
+      ['左スティック', '移動（倒しきるとダッシュ）'], ['右スティック', '視点'], [L.bottom, 'ジャンプ（近くに人や宝箱があれば話す・調べる）'],
+      [L.right, 'ダッシュ回避'], [L.left, '元素スキル'], [L.top, '元素爆発'], ['RT', '通常攻撃（押しっぱなしで連続）'], ['LT', '水中で潜る'],
+      ['LS', '走る'], ['LB / RB', 'キャラ交代'], ['十字 上 / 下', '回復薬 / 精霊の馬'], ['Start', 'メニュー'], ['Select', '地図'], ['RS', '編成'],
+    ];
+    const padNav = [['左スティック / 十字', 'メニューの項目を選ぶ'], [L.bottom, '決定'], [L.right, '戻る'], ['LB / RB', 'タブ切り替え'], ['左右', 'スライダー・選択肢を変える']];
     return h('div', { class: 'pause-menu' },
       h('section', {}, h('h3', {}, '設定'),
         h('label', { class: 'set-row', for: 'set-quality' }, h('span', {}, '画質'), sel),
         h('label', { class: 'set-row', for: 'set-sens' }, h('span', {}, '視点感度'), sens),
         toggle('set-sfx', '効果音', 'sfx', (v) => { g.audio.sfxOn = v; }),
         toggle('set-bgm', 'BGM', 'bgm', (v) => { g.audio.bgmOn = v; if (v) g.audio.startMusic(g.world.realm.bgm); else g.audio.stopMusic(); }),
+        h('p', { class: 'muted small', id: 'pad-status' }, `コントローラー ${g.input.padStatusText()}`),
         h('div', { class: 'set-btns' }, saveBtn, resetBtn),
         h('p', { class: 'muted small' }, 'セーブはこのブラウザに保存されます。20秒ごとと物語の進行時にも自動セーブします。')),
       h('section', {}, h('h3', {}, '操作方法'), h('dl', { class: 'keys' }, help.map(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]))),
+      h('section', {}, h('h3', {}, 'コントローラー'), h('p', { class: 'muted small' }, 'Xbox・PlayStation・Switch Proなど、ブラウザが認識する標準的なゲームパッドに対応しています。接続するだけで使えます。'),
+        h('dl', { class: 'keys' }, pad.map(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])),
+        h('h3', {}, 'メニュー操作'), h('dl', { class: 'keys' }, padNav.map(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]))),
       h('section', {}, h('h3', {}, '元素反応'), h('dl', { class: 'keys' },
         [['融解', '火×氷　大ダメージ'], ['蒸発', '火×水　大ダメージ'], ['過負荷', '雷×火　爆発'], ['感電', '雷×水　継続ダメージ'], ['超電導', '雷×氷　耐性ダウン'], ['凍結', '水×氷　敵を凍らせる'], ['拡散', '風×元素　周囲に広がる'], ['結晶', '岩×元素　シールド'], ['輝光', '光×元素　回復'], ['侵蝕', '闇×元素　耐性ダウン'], ['対消滅', '光×闇　超大ダメージ']].map(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]))));
   }

@@ -226,6 +226,9 @@ export class Player {
     this.lavaCd = Math.max(0, this.lavaCd - dt);
 
     for (let i = 0; i < 4; i++) if (input.consume(`switch${i + 1}`)) this.switchTo(i);
+    const n = this.members.length;
+    if (input.consume('prevChar')) this.switchTo((this.activeIdx - 1 + n) % n);
+    if (input.consume('nextChar')) this.switchTo((this.activeIdx + 1) % n);
     if (input.consume('mount')) {
       if (this.mounted) this.setMounted(false);
       else if (this.mode === 'walk' || this.mode === 'dive') this.setMounted(true);

@@ -1,7 +1,7 @@
 const browser = Object.fromEntries([
   'window', 'document', 'navigator', 'location', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout', 'clearTimeout',
   'setInterval', 'clearInterval', 'addEventListener', 'removeEventListener', 'innerWidth', 'innerHeight', 'devicePixelRatio', 'matchMedia',
-  'localStorage', 'atob', 'btoa', 'console', 'structuredClone', 'URL', 'self', 'caches', 'fetch', 'ImageData',
+  'localStorage', 'atob', 'btoa', 'console', 'structuredClone', 'URL', 'self', 'caches', 'fetch', 'ImageData', 'Event',
 ].map((k) => [k, 'readonly']));
 const node = Object.fromEntries(['process', 'console', 'Buffer'].map((k) => [k, 'readonly']));
 

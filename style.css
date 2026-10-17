@@ -183,6 +183,9 @@ kbd { font-family: var(--body); font-size: 10px; line-height: 1; padding: 2px 4p
 #hud.is-touch .mbtn { padding: 7px 10px; font-size: 12px; }
 #hud.is-touch .party, #hud.is-touch .tr, #hud.is-touch .skills, #hud.is-touch .prompt, #hud.is-touch .quest { z-index: 3; position: absolute; }
 
+/* Gamepad focus ring: shown only on the control the pad has selected. */
+.gp-focus { outline: 3px solid var(--gold) !important; outline-offset: 3px; box-shadow: 0 0 0 7px rgba(255, 211, 106, 0.22); }
+
 /* ---------------------------------------------------------------- overlays */
 .overlay { position: fixed; inset: 0; background: rgba(10, 8, 18, 0.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: grid; place-items: center; pointer-events: auto; padding: calc(var(--st) + 12px) max(12px, var(--sr)) calc(var(--sb) + 12px) max(12px, var(--sl)); z-index: 5; }
 .m-panel { width: min(1120px, 100%); height: min(780px, 100%); background: linear-gradient(180deg, #1d1630, #140f22); border: 1px solid var(--line); border-radius: 18px; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); overflow: hidden; }

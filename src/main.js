@@ -79,9 +79,13 @@ function boot(hotData) {
   addEventListener('pointerdown', unlockAudio);
   addEventListener('keydown', unlockAudio);
 
+  // A is "talk" when something is in reach, otherwise jump.
+  input.contextA = () => !!(game.save && game.state === 'play' && game.interactable());
+
   const loop = (now) => {
     requestAnimationFrame(loop);
     if (document.hidden) return;
+    try { input.pollGamepad(now); } catch (err) { console.warn('gamepad', err); }
     game.frame(now);
   };
   requestAnimationFrame(loop);
